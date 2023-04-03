@@ -1,0 +1,11 @@
+{
+  "name": "akvLinkedServiceADFCOMMON",
+  "type": "Microsoft.DataFactory/factories/linkedservices",
+  "properties": {
+      "annotations": [],
+      "type": "AzureKeyVault",
+      "typeProperties": {
+          "baseUrl": "https://#{CustomerPrefix}##{EnvironmentIdLower}#euneakvadfcommon.vault.azure.net/"
+      }
+  }
+}

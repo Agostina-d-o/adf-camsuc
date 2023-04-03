@@ -1,0 +1,12 @@
+{
+    "name": "laLigaBia",
+    "properties": {
+        "type": "SelfHosted",
+        "typeProperties": {
+            "linkedInfo": {
+                "resourceId": "/subscriptions/#{CfgSubscriptionIdIntegrationRuntime}#/resourcegroups/#{LaLigaPrefix}##{CfgEnvironmentIdLower}#eunergranalytics/providers/Microsoft.DataFactory/factories/#{LaLigaPrefix}##{CfgEnvironmentIdLower}#euneadfir/integrationruntimes/laligaBIA",
+                "authorizationType": "Rbac"
+            }
+        }
+    }
+}

@@ -1,0 +1,259 @@
+{
+    "name": "CallDatabricks",
+    "properties": {
+        "activities": [
+            {
+                "name": "CheckStateJobDatabrick",
+                "type": "Until",
+                "dependsOn": [
+                    {
+                        "activity": "CallJobDatabricks",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "userProperties": [],
+                "typeProperties": {
+                    "expression": {
+                        "value": "@if( or(or( or( and( equals('TERMINATED', activity('CheckStatus').output.state.life_cycle_state), equals('SUCCESS',activity('CheckStatus').output.state.result_state) ), and( equals('TERMINATED', activity('CheckStatus').output.state.life_cycle_state), equals('FAILED',activity('CheckStatus').output.state.result_state) ) ),\t and(  equals('INTERNAL_ERROR', activity('CheckStatus').output.state.life_cycle_state),  equals('FAILED',activity('CheckStatus').output.state.result_state) ) ), equals('SKIPPED',activity('CheckStatus').output.state.life_cycle_state)),true,false)",
+                        "type": "Expression"
+                    },
+                    "activities": [
+                        {
+                            "name": "CheckStatus",
+                            "type": "WebActivity",
+                            "dependsOn": [
+                                {
+                                    "activity": "Wait20Seconds",
+                                    "dependencyConditions": [
+                                        "Succeeded"
+                                    ]
+                                }
+                            ],
+                            "policy": {
+                                "timeout": "7.00:00:00",
+                                "retry": 0,
+                                "retryIntervalInSeconds": 30,
+                                "secureOutput": false,
+                                "secureInput": true
+                            },
+                            "userProperties": [],
+                            "typeProperties": {
+                                "url": {
+                                    "value": "@concat(activity('GetDatabricksInstanceId').output.value,'api/2.0/jobs/runs/get?run_id=',activity('CallJobDatabricks').output.run_id)",
+                                    "type": "Expression"
+                                },
+                                "method": "GET",
+                                "headers": {
+                                    "Authorization": {
+                                        "value": "@concat('Bearer ', activity('KeyVaultGetDatabricksToken').output.value)",
+                                        "type": "Expression"
+                                    }
+                                }
+                            }
+                        },
+                        {
+                            "name": "Wait20Seconds",
+                            "type": "Wait",
+                            "dependsOn": [],
+                            "userProperties": [],
+                            "typeProperties": {
+                                "waitTimeInSeconds": 21
+                            }
+                        }
+                    ],
+                    "timeout": "7.00:00:00"
+                }
+            },
+            {
+                "name": "IfState",
+                "type": "IfCondition",
+                "dependsOn": [
+                    {
+                        "activity": "CheckStateJobDatabrick",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "userProperties": [],
+                "typeProperties": {
+                    "expression": {
+                        "value": "@if(equals('FAILED',activity('CheckStatus').output.state.result_state),false,true)",
+                        "type": "Expression"
+                    },
+                    "ifFalseActivities": [
+                        {
+                            "name": "Error",
+                            "type": "SetVariable",
+                            "dependsOn": [],
+                            "userProperties": [],
+                            "typeProperties": {
+                                "variableName": "Error",
+                                "value": {
+                                    "value": "@div(1,0)",
+                                    "type": "Expression"
+                                }
+                            }
+                        }
+                    ]
+                }
+            },
+            {
+                "name": "GetDatabricksInstanceId",
+                "type": "WebActivity",
+                "dependsOn": [],
+                "policy": {
+                    "timeout": "7.00:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": true,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "url": {
+                        "value": "@concat(variables('akv_url_adbcommon'), 'DatabricksInstanceId',variables('akv_api_vers'))",
+                        "type": "Expression"
+                    },
+                    "method": "GET",
+                    "authentication": {
+                        "type": "MSI",
+                        "resource": "https://vault.azure.net"
+                    }
+                }
+            },
+            {
+                "name": "CallJobDatabricks",
+                "type": "WebActivity",
+                "dependsOn": [
+                    {
+                        "activity": "GetDatabricksInstanceId",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    },
+                    {
+                        "activity": "KeyVaultGetJobId",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    },
+                    {
+                        "activity": "KeyVaultGetDatabricksToken",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "policy": {
+                    "timeout": "7.00:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": true
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "url": {
+                        "value": "@concat(activity('GetDatabricksInstanceId').output.value,'api/2.0/jobs/run-now')",
+                        "type": "Expression"
+                    },
+                    "method": "POST",
+                    "headers": {
+                        "Authorization": {
+                            "value": "@concat('Bearer ', activity('KeyVaultGetDatabricksToken').output.value)",
+                            "type": "Expression"
+                        }
+                    },
+                    "body": {
+                        "value": "@concat('{\"job_id\":', activity('KeyVaultGetJobId').output.value, ',\"nb_param\":', json(pipeline().parameters.nb_param), '}' )",
+                        "type": "Expression"
+                    }
+                }
+            },
+            {
+                "name": "KeyVaultGetJobId",
+                "type": "WebActivity",
+                "dependsOn": [],
+                "policy": {
+                    "timeout": "7.00:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": true,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "url": {
+                        "value": "@concat(variables('akv_url_adbcommon'),pipeline().parameters.job_id_secret,variables('akv_api_vers'))",
+                        "type": "Expression"
+                    },
+                    "method": "GET",
+                    "authentication": {
+                        "type": "MSI",
+                        "resource": "https://vault.azure.net"
+                    }
+                }
+            },
+            {
+                "name": "KeyVaultGetDatabricksToken",
+                "type": "WebActivity",
+                "dependsOn": [],
+                "policy": {
+                    "timeout": "7.00:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": true,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "url": {
+                        "value": "@concat(variables('akv_url_adbcommon'),'AdbTokenId',variables('akv_api_vers'))",
+                        "type": "Expression"
+                    },
+                    "method": "GET",
+                    "authentication": {
+                        "type": "MSI",
+                        "resource": "https://vault.azure.net"
+                    }
+                }
+            }
+        ],
+        "parameters": {
+            "job_id_secret": {
+                "type": "string"
+            },
+            "nb_param": {
+                "type": "json"
+            }           
+        },
+        "variables": {
+            "Error": {
+                "type": "String"
+            },
+            "akv_api_vers": {
+                "type": "String",
+                "defaultValue": "/?api-version=7.3"
+            },
+            "akv_url_adbcommon": {
+                "type": "String",
+                "defaultValue": "https://#{CustomerPrefix}##{CfgEnvironmentIdLower}#euneakvadbcommon.vault.azure.net/secrets/"
+            },
+            "akv_url_databricks": {
+                "type": "String",
+                "defaultValue": "https://#{CustomerPrefix}##{EnvironmentIdLower}#euneakvadbcommon.vault.azure.net/secrets/"
+            },
+            "akv_url_adbcamsuc": {
+                "type": "String",
+                "defaultValue": "https://#{CustomerPrefix}##{EnvironmentIdLower}#euneakvadbcamsuc.vault.azure.net/secrets/"
+            }
+        },
+        
+        "annotations": [],
+        "lastPublishTime": "2022-09-06T14:02:37Z"
+    },
+    "type": "Microsoft.DataFactory/factories/pipelines"
+}

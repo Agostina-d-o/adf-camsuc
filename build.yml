@@ -1,0 +1,10 @@
+# Example of  build.yml file for Jenkins Deployments with Data Factory v2 projects
+maintainer: ai@mailC.com  # E-mail of project mantainer/owner, for information purpose only
+enabled: 'yes'                      # Whether to run the pipeline or not: yes or no
+project_name: "camsuc"              # datactory will be created with this name: "ll2[dv|bi|ts|qa|pr]euneadf[project_name]"
+az_resource_prefix: "ll2"           # Prefix of the resource type Allowed Values ["ll2"]
+az_resource_identifier: "df2"       # Data Factory resource type identifier. Allowed Values ["adf","df2","adf2"]
+az_resource_group: ""               # Resource Group in which the Data Factory will be deployed (without llxxxeunergr). If left empty, the default group will be "analytics"
+keyvaults:
+  - "adfcommon"
+  - "adbcamsuc"

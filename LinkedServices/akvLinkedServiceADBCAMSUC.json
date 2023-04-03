@@ -1,0 +1,11 @@
+{
+    "name": "akvLinkedServiceADBCAMSUC",
+    "type": "Microsoft.DataFactory/factories/linkedservices",
+    "properties": {
+        "annotations": [],
+        "type": "AzureKeyVault",
+        "typeProperties": {
+            "baseUrl": "https://#{CustomerPrefix}##{EnvironmentIdLower}#euneakvadbcamsuc.vault.azure.net/"            
+        }
+    }
+  }
